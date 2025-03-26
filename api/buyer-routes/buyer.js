@@ -28,3 +28,19 @@ router.get('/properties/:id', async (req, res) => {
     });
 }
 );
+
+// all images associated with a property
+router.get('/properties/:id/images', async (req, res) => {
+    const id = req.params.id;
+    await connection.query('SELECT * FROM property_images WHERE property_id = ?', [id], (error, results) => {
+        if (error) {
+            console.log(error);
+            res.status(500).send('Internal Server Error');
+        } else {
+            res.status(200).json(results);
+        }
+    });
+}
+);
+
+module.exports = router;

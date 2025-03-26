@@ -18,12 +18,14 @@ app.use('/uploads', express.static('uploads'));
 const authRoutes = require('./auth-routes/auth');
 const sellerRoutes = require('./seller-routes/seller');
 const buyerRoutes = require('./buyer-routes/buyer');
+const messagesRoutes = require('./messages-routes/messages');
 
 const Port = 3000;
 
 app.use('/auth', authRoutes);
 app.use('/seller', sellerRoutes);
 app.use('/buyer', buyerRoutes);
+app.use('/messages', messagesRoutes);
 
 app.listen(Port, () => {
     console.log('Server is running on port 3000');
