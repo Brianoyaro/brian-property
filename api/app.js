@@ -1,3 +1,6 @@
+// https://mahmudnotes.hashnode.dev/uploading-multiple-files-to-expressjs-backend-from-reactjs-frontend-using-rest-api
+
+
 const express = require('express'); 
 const app = express();
 const cors = require('cors');
@@ -6,26 +9,90 @@ const multer = require('multer');
 const uuid = require('uuid');
 const bodyparser = require('body-parser');
 
-// set the upload limit, in this case I gave it 50 mb
-app.use(bodyparser.urlencoded({ limit: '50mb', extended: true }))
-app.use(cors()) // we are allowing every sites to send API call
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-app.use('/uploads', express.static('uploads'));
-// setting the upload folder as static folder
 
-
-const authRoutes = require('./auth-routes/auth');
-const sellerRoutes = require('./seller-routes/seller');
-const buyerRoutes = require('./buyer-routes/buyer');
-const messagesRoutes = require('./messages-routes/messages');
 
 const Port = 3000;
 
-app.use('/auth', authRoutes);
-app.use('/seller', sellerRoutes);
-app.use('/buyer', buyerRoutes);
-app.use('/messages', messagesRoutes);
+app.use(bodyparser.urlencoded({ limit: '50mb', extended: true })) // set the upload limit, in this case I gave it 50 mb
+app.use(cors()) // we are allowing every sites to send API call
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+app.use('/uploads', express.static('uploads')); // setting the upload folder as static folder
+
+// set the upload limit, in this case I gave it 50 mb
+// app.use(bodyparser.urlencoded({ limit: '50mb', extended: true }))
+// app.use(cors()) // we are allowing every sites to send API call
+// app.use(express.urlencoded({ extended: true }));
+// app.use(express.json());
+// app.use('/uploads', express.static('uploads'));
+// setting the upload folder as static folder
+
+/*
+    we are using multer.diskStoarge() to take the full control for 
+    uploading files
+*/
+const storage = multer.diskStorage({
+    // `cb` stands for callback
+    destination: (req, file, cb) => {
+        cb(null, './uploads/')     },
+    // destination function is a function to set the path for our files.
+    filename: (req, file, cb) => {
+        const extension = path.extname(file.originalname);
+        cb(null, uuid.v4() + extension);
+    // giving the file name, here we are naming it with uuid.extension
+    }
+})
+
+const upload = multer({ storage: storage }) // upload middleware
+
+app.post('/properties/new', upload.array('image'), async (req, res) => {
+    // cobfirm file upload to prevent server crush
+    if (!req.files || req.files.length === 0) {
+        return res.status(400).json({ message: "No files uploaded" });
+    }
+    const uploadedFiles = req.files.map((file) => `/uploads/${file.filename}`);
+    // mapping through all of the files and setting file name for every files
+    const { title, description, price, location, seller_id } = req.body;
+    // getting the values from the body
+    await connection.query('INSERT INTO properties (title, description, price, location, seller_id, image) VALUES (?, ?, ?, ?, ?, ?)', [title, description, price, location, seller_id, uploadedFiles[0]], (error, results) => {
+        if (error) {
+            console.log(error);
+            res.status(500).send('Internal Server Error');
+        }
+        const propertyId = results.insertId;
+        const imageValues = uploadedFiles.map((image) => [propertyId, image]);
+        connection.query('INSERT INTO property_images (property_id, image) VALUES (?, ?)', [imageValues], (error, results) => {
+            if (error) {
+                console.log(error);
+                res.status(500).send('Internal Server Error');
+            }
+        });
+        res.status(201).send('Property Added');
+    });
+})
+
+
+// Register
+// Login
+// buyer-index
+// buyer-property-detail
+// seller-index
+
+// send-message
+// get-messages
+// get-conversation
+// get-conversations
+
+// create-property  DONE
+// update-property
+// delete-property
+// get-properties
+// get-property
+
+// socket.io for real-time chat
+
+
+
 
 app.listen(Port, () => {
     console.log('Server is running on port 3000');
